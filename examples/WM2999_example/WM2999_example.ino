@@ -1,20 +1,49 @@
-/*
- * Copyright 2012 Alan Burlison, alan@bleaklow.com.  All rights reserved.
- * Use is subject to license terms.
- *
- * Demo of the WS2811 driver, driving 3 pixels.
- */
+// LED Pixel Driver for Holiday Time 20ct "Color Changing" lights
+// Written By:  Greg Scull (komby) 1/2013
+// All Use subject to license terms.
 
-#include <WM2999.h>
+#include "WM2999.h"
+//#include <Arduino.h>
+
+//
+//#include <avr/io.h>
+//#include <avr/interrupt.h>
+//#include <util/delay.h>
+
+//
+//the implementation of this sketch  is a combination of  a lot of others work.
+// and  atini bit of mine 
+//
+// the bit banging was a combination of the work from Alan B and Pololu's drivers for different pixel strings.
+// Alan Burlison : http://sourceforge.net/p/abavr/lib
+// Pololu : https://github.com/pololu/pololu-led-strip-arduino
+//
+// The Class/c++ ideas as well as some other ideas were taken from the AdaFruit and their work for the WS2801 pixel driver. ( and the pololu template for pin config ).
+// https://github.com/adafruit/Adafruit-WS2801-Library
+//
+// This driver is a bit banging approach to driving the pixels on a Atmega 328pu (uno) chip. 
+// I have not tested on anything but an uno on pin 8 .. YMMV
+//
+// And a LOT of help from Andy L. @ DIYC for getting these pixels timing figured out and explaining it to us mortals 
+// Also thanks to Zeph for posing the question and others for finding them for 5$ a set :)  
+// You can read about that here and all the others hard work,  Ernie H.,KingofKYa, bigredsoftware .... THANKS EVERYONE! 
+// http://doityourselfchristmas.com/forums/showthread.php?24162-Hackable-Cheap-Walmart-quot-Pixels-quot-an-exlectronic-puzzle
+// 
+//
 
 
-WM2999<8> strip =  WM2999<8>(20);
+WM2999<8> strip =  WM2999<8>();
 
 
 void setup() {
+     //strip 
+     pinMode(8, OUTPUT);
+     digitalWrite(8, LOW);
+     delay(2);
+
         strip.SetPixelCount(20);
         
-        strip.start();
+        strip.Start();
         
         strip.Paint();
 }
@@ -28,7 +57,7 @@ void loop() {
   colorWipe(Color(0, 0, 255), 200);
   rainbow(50);
   rainbowCycle(200);
-   
+   strip.Paint();
        }
 
 
@@ -47,7 +76,7 @@ void rainbowCycle(uint8_t wait) {
       strip.SetPixelColor(i, Wheel( ((i * 256 / strip.GetPixelCount()) + j) % 256) );
     }  
     strip.Paint();   // write all the pixels out
-    delay(wait);
+    delay(4000);
   }
 }
 
@@ -59,7 +88,7 @@ void colorWipe(uint32_t c, uint8_t wait) {
   for (i=0; i < strip.GetPixelCount(); i++) {
       strip.SetPixelColor(i, c);
       strip.Paint();
-      delay(wait);
+     delay(4000);
   }
 }
 
@@ -69,13 +98,14 @@ void colorWipe(uint32_t c, uint8_t wait) {
 uint32_t Color(byte r, byte g, byte b)
 {
   uint32_t c;
-  c = r;
+  c = b;
   c <<= 8;
   c |= g;
   c <<= 8;
-  c |= b;
+  c |= r;
   return c;
 }
+
 
 //Input a value 0 to 255 to get a color value.
 //The colours are a transition r - g -b - back to r
@@ -101,6 +131,6 @@ void rainbow(uint8_t wait) {
       strip.SetPixelColor(i, Wheel( (i + j) % 255));
     }  
     strip.Paint();   // write all the pixels out
-    delay(wait);
+    delay(3000);
   }
 }

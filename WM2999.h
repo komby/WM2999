@@ -327,8 +327,6 @@ public:
                 //
                 for ( int i= 0; i<count ; i++)
 		{
-  Serial.println("test in loop ");
-  Serial.println(i);
 			asm volatile (
                                " in r26, __SREG__     ; timing-critical, so no interrupts\n" 
                                 "cli  ; global interrupts disable\n" 
@@ -366,12 +364,6 @@ public:
 				"    nop		 ;end delay\n"
 				"    ret\n"
 				"string_end%=:\n "
-                                "    ldi  r18, 90        ;delay for 6us\n" 
-				"16:  dec  r18		 ;\n"
-                                "nop\n" "nop\n" "nop\n" "nop\n" "nop\n" "nop\n" 
-                                                             
-				"    brne 16b            ;\n"
-				"    nop		 ;end delay\n"
                                 "    out __SREG__, r26    ; reenable interrupts\n" 
 				: \
 				: [colors] "z" (colors),
@@ -379,7 +371,7 @@ public:
 				[port] "I" (_SFR_IO_ADDR(PORTB)), 
 				[pin] "I" (0) 
                                 :"r18", "r26","cc", "memory"  );
-			
+			delayMicroseconds(590);
 		}
 
 		//asm();          // Re-enable interrupts now that we are done.  Hopefully this works!

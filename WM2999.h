@@ -300,7 +300,7 @@ public:
 	//}
 	void Paint(void)
 	{
-
+ Serial.println ("default paint: ");
 		Paint(pixels, numberOfPixels);	
 	}
 	// Function definition for the paint operation.  This is a templated class so the pin is dynamic to the instance.
@@ -315,25 +315,29 @@ public:
 	//
 	void Paint(uint8_t *  colors, unsigned int count)
 	{
+   //Serial.print ("2arg paint: ");
 		Paint( colors, 20,0, PORTB);
 	}
 	void Paint(uint8_t * colors, unsigned int count, uint8_t ppin, uint8_t port){
-		//shut off the interrupts so that pulses are predictable
-		asm volatile ("cli  ; global interrupts disable\n" );
+
 
 
                 //here it is,  the dirty work.  truth be told i have no idea if this works.  I tried to test the timings 
                 //my only way is using the pickit2 in logic analyzer mode.  It was really helpful,  but i think its off a little bit.
                 //
-		while(count--)
+                for ( int i= 0; i<count ; i++)
 		{
-			asm volatile(
+  Serial.println("test in loop ");
+  Serial.println(i);
+			asm volatile (
+                               " in r26, __SREG__     ; timing-critical, so no interrupts\n" 
+                                "cli  ; global interrupts disable\n" 
 				"    rcall write_byte%=\n"
 				"    rcall write_byte%=\n"
 				"    rcall write_byte%=\n"
-				"    rcall string_end%=\n"
+				"    rjmp string_end%=\n"
 				"write_byte%=:\n"
-				"    ld __tmp_reg__, Z+   ; get next 8 bits\n"   
+                                 "    ld __tmp_reg__, Z+   ; get next 8 bits\n"   
 				"    rcall write_bit%=\n"
 				"    rcall write_bit%=\n"
 				"    rcall write_bit%=\n"
@@ -344,36 +348,47 @@ public:
 				"    rcall write_bit%=\n"
 				"    ret\n"
 				"write_bit%=:\n"
-				"    cbi  %2, %3 \n"      // hi -> lo sarting low state delay 2us
-				"    ldi  r16, 9         ;	delay for 2us\n" 
-				"13:  dec  r16		 ;\n" 
+				"    cbi  %[port], %[pin] \n"      // hi -> lo sarting low state delay 2us
+				"    ldi  r18, 8         ;	delay for 2us\n" 
+				"13:  dec  r18		 ;\n" 
 				"    brne 13b            ;\n"
 				"    nop		 ;end delay\n"
 				"    rol __tmp_reg__     ; push bit to eval into carry \n"
-				"    brcs 5f             ; jump past the stretching of a low state for a 1 bit when it is a 0 \n "
-				"    ldi  r16, 34        ;	delay for 6us\n" 
-				"14:  dec  r16		 ;\n" 
+				"    brcc 15f             ; jump past the stretching of a low state for a 1 bit when it is a 0 \n "
+				"    ldi  r18, 34        ;	delay for 6us\n" 
+				"14:  dec  r18		 ;\n" 
 				"    brne 14b            ;\n"
 				"    nop		 ;end delay\n"
-				"5:  sbi  %2, %3\n" 
-				"    ldi  r16, 40        ;delay for 6us\n" 
-				"15:  dec  r16		 ;\n" 
-				"    brne 15b            ;\n"
+				"15:  sbi %[port], %[pin]\n" 
+				"    ldi  r18, 45        ;delay for 6us\n" 
+				"16:  dec  r18		 ;\n" 
+				"    brne 16b            ;\n"
 				"    nop		 ;end delay\n"
-				"    ret                 ; \n" 
-				"string_end%=: " 
+				"    ret\n"
+				"string_end%=:\n "
+                                "    ldi  r18, 90        ;delay for 6us\n" 
+				"16:  dec  r18		 ;\n"
+                                "nop\n" "nop\n" "nop\n" "nop\n" "nop\n" "nop\n" 
+                                                             
+				"    brne 16b            ;\n"
+				"    nop		 ;end delay\n"
+                                "    out __SREG__, r26    ; reenable interrupts\n" 
 				: \
-				: [colors] "z" (colors), 
-				[count] "w" (count), 
+				: [colors] "z" (colors),
+				[count] "w" (count),
 				[port] "I" (_SFR_IO_ADDR(PORTB)), 
 				[pin] "I" (0) 
-				: "r18", "r19", "r20", "r26", "r27","cc", "memory"  );
-			delayMicroseconds(600);
+                                :"r18", "r26","cc", "memory"  );
+			
 		}
 
-		asm("sei\n" "nop\n");          // Re-enable interrupts now that we are done.  Hopefully this works!
+		//asm();          // Re-enable interrupts now that we are done.  Hopefully this works!
 		digitalWrite(pin, LOW);
 		delayMicroseconds(38);         // Hold the line low for 24 microseconds to send the reset signal.
+//digitalWrite(pin, HIGH);
+
+	
+
 
 	}
 
@@ -395,28 +410,43 @@ public:
 	void SetPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
 		if(n < numberOfPixels) { // Arrays are 0-indexed, thus NOT '<='
 			uint8_t *p = &pixels[n * 3];
-
-			*p++ = r;
-			*p++ = g;
-
-
 			*p++ = b;
+ // Serial.print("b:");         
+                         //Serial.println(*p++);
+			*p++ = g;
+  //Serial.print("g:");         
+                       //  Serial.println(*p++);
+			*p = r;
+  //Serial.print("r:");         
+                        // Serial.println(*p);
+ 
 		}
+else 
+  Serial.print("error in void SetPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b)");  
+
 	}
 
 	// Set pixel color from 'packed' 32-bit RGB value:
 	void SetPixelColor(uint16_t n, uint32_t c) {
 		if(n < numberOfPixels) { // Arrays are 0-indexed, thus NOT '<='
 			uint8_t *p = &pixels[n * 3];
-			// To keep the show() loop as simple & fast as possible, the
-			// internal color representation is native to different pixel
-			// types.  For compatibility with existing code, 'packed' RGB
-			// values passed in or out are always 0xRRGGBB order.
-
-			*p++ = c >> 16; // Red
-			*p++ = c >>  8; // Green
-			*p++ = c;         // Blue
+                        *p++ = c;         // Blue
+                        // Serial.print("b:");         
+                        // Serial.println(*p);
+                        *p++ = c >>  8; // Green
+		         ////Serial.print("g:");         
+                         //Serial.println(*p);
+                	*p = c >> 16; // Red
+		        // Serial.print("r:");         
+                        // Serial.println(*p);
+                			
+  
 		}
+else
+
+ Serial.print("error in void SetPixelColor(uint16_t n, uint8_t raqsdasd, uint8_t g, uint8_t b)");  
+
+                    
 	}
 
 
@@ -442,24 +472,41 @@ public:
 	}
 	//definition of helper method to return pixel count
 	void SetPixelCount(  uint32_t pCount) {
-		digitalWrite(8, HIGH);
-		delayMicroseconds(pCount);
-		digitalWrite(8, LOW);
-
-		digitalWrite(8, HIGH);
-		digitalWrite(8, LOW);
 		alloc(pCount);
-
 
 	}
 
 	void alloc(uint16_t n) {
-		if (pixels != NULL) {
+     
+
+  		if (pixels != NULL) {
 			free(pixels);
 		}
 		numberOfPixels = ((pixels = (uint8_t *)calloc(n, 3)) != NULL) ? n : 0;
-	}
+       
+        uint8_t *temp = pixels;
+        
 
+        for (int i=0;i<numberOfPixels;i++)
+        {
+                 
+       *(temp++) = 0;
+        // Serial.print("b:");         
+        // Serial.println(*temp);
+         *(temp++)=0;
+        // Serial.print("g:");                    
+        // Serial.println(*temp);
+         *(temp++)=0;
+       //Serial.print("r:"); 
+        // Serial.println(*temp);
+       
+
+                    
+        
+          //Serial.println(&temp);
+        }
+ 
+}
 
 private:
 	//number of pixels

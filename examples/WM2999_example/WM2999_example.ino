@@ -38,26 +38,51 @@ WM2999<8> strip =  WM2999<8>();
 void setup() {
      //strip 
      pinMode(8, OUTPUT);
-     digitalWrite(8, LOW);
-     delay(2);
-
+//digitalWrite(8, LOW);
+    
+Serial.begin(115200);
         strip.SetPixelCount(20);
         
         strip.Start();
         
-        strip.Paint();
+       // strip.Paint();
 }
 
 
 void loop() {
 
+ int i;
+  
+  for (i=0; i < 20; i++) {
+      strip.SetPixelColor(i, 0, 0, 255);
+      
+     
+  }
+  strip.Paint();
+  delay(2000);
+   for (i=0; i < 20; i++) {
+      strip.SetPixelColor(i, 0, 255, 0);
+      
+     
+  }
+  strip.Paint();
+  delay(2000); 
+     for (i=0; i < 20; i++) {
+      strip.SetPixelColor(i, 255, 0, 0);
+      
+     
+  }
+  strip.Paint();
+  delay(2000); 
+//colorWipe(Color(255, 255, 255), 1000); //white
+//  colorWipe(Color(0, 0, 255), 100); //red
+//   
+//   colorWipe(Color(0, 255, 0), 10000); //green
+// colorWipe(Color(0, 0, 255), 10000); //blue
+// colorWipe(Color(128, 128, 128), 100);
+//  rainbow(100);
+//  rainbowCycle(200);
  
- colorWipe(Color(255, 0, 0), 100);
-  colorWipe(Color(0, 255, 0), 150);
-  colorWipe(Color(0, 0, 255), 200);
-  rainbow(50);
-  rainbowCycle(200);
-   strip.Paint();
        }
 
 
@@ -87,9 +112,11 @@ void colorWipe(uint32_t c, uint8_t wait) {
   
   for (i=0; i < strip.GetPixelCount(); i++) {
       strip.SetPixelColor(i, c);
-      strip.Paint();
-     delay(4000);
+      
+     
   }
+  strip.Paint();
+  delay(wait);
 }
 
 /* Helper functions */
@@ -97,12 +124,14 @@ void colorWipe(uint32_t c, uint8_t wait) {
 // Create a 24 bit color value from R,G,B
 uint32_t Color(byte r, byte g, byte b)
 {
+  
   uint32_t c;
-  c = b;
+  c = r;
   c <<= 8;
   c |= g;
   c <<= 8;
-  c |= r;
+  c |= b;
+  Serial.print( "uint32color returned : "); Serial.print(c);
   return c;
 }
 

@@ -377,7 +377,8 @@ public:
 		//asm();          // Re-enable interrupts now that we are done.  Hopefully this works!
 		digitalWrite(pin, LOW);
 		delayMicroseconds(38);         // Hold the line low for 24 microseconds to send the reset signal.
-//digitalWrite(pin, HIGH);
+                //fix for individeal pixel addressing
+                digitalWrite(pin, HIGH);
 
 	
 

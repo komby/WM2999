@@ -10,35 +10,40 @@
 // The Class/CPP ideals as well as some other ideas were taken from the AdaFruit and their work for the WS2801 pixel driver.
 // https://github.com/adafruit/Adafruit-WS2801-Library
 //
-// This driver is a bit banging approach to driving the pixels on a Atmega 328pu (uno) chip. 
-// I have not tested on anything but an uno on pin 8 .. YMMV
-//
 // And a LOT of help from Andy L. @ DIYC for getting these pixels timing figured out and explaining it to us mortals 
 // Also thanks to Zeph for posing the question and others for finding them for 5$ a set :)  
 // You can read about that here and all the others hard work,  Ernie H.,KingofKYa, bigredsoftware .... THANKS EVERYONE! 
 // http://doityourselfchristmas.com/forums/showthread.php?24162-Hackable-Cheap-Walmart-quot-Pixels-quot-an-exlectronic-puzzle
 // 
+//This driver is a bit banging approach to driving the pixels on a Atmega 328p but should work with any avr 16mhz chip. 
 //
+
 
 #ifndef  WM2999_H
 #define  WM2999_H
 
 #include <Arduino.h>
-
-
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
 #endif
 
-
+//struct to store the pixel color information
+//this is a packed struct such that the memory
+//is contigous allowing for pointer iteration.
 typedef struct __attribute__ ((__packed__)) 
 {
 	uint8_t  r, g, b;
 } rgb_color;
 
 
+
+// These definitions were used from the polou driver code.
+// they are not currently in use they are intended to help
+// get rid of the hard coding that is used in the Paint call
+// so that we can drive multiple strings,  or strings with a different
+// pin other than pin 8
 #if defined(__AVR_ATmega32U4__)
 // ATmega32U4-based boards such as the Arduino Leonardo
 
@@ -216,7 +221,7 @@ const unsigned char pinAddr[] =
 
 
 
-//base class for pixels - this is overkill for today but hey its cpp lets inherit something :)
+//base class for pixels 
 class PixelBase {
 public: 
 	//	void virtual Paint(rgb_color *, unsigned int count) = 0;
@@ -234,10 +239,9 @@ public:
 
 
 
-//This template class is intended for the pin to represent the pin on the Arduino 
-//hopefully we can use this to have multiple instances of the driver running on one chip.
-//i am woefully ignorant of what the implications are regarding the register usage if there are 
-//multiples ...  enlighten me ... please
+//Template class to handle one string of pixels on a particular pin.
+//the pin is meant to specify what you know as a pin on an arduino,  not a pin on the atmega chip
+//IE Pin 8 would be pin0, portb - your code would use 8 , not 0.
 template<unsigned int pin> class WM2999 : public PixelBase
 {
 public:	
@@ -266,7 +270,7 @@ public:
 	// Set pixel color from 'packed' 32-bit RGB value:
 	void  setPixelColor(uint16_t n, uint32_t c) {
 
-		if(n < numberOfPixels) { // Arrays are 0-indexed, thus NOT '<='
+		//if(n < numberOfPixels) { // Arrays are 0-indexed, thus NOT '<='
 			uint8_t *p = &pixels[n * 3];
 			// To keep the show() loop as simple & fast as possible, the
 			// internal color representation is native to different pixel
@@ -277,30 +281,14 @@ public:
 			*p++ = c >>  8; // Green
 			*p++ = c >> 16; // Red
 
-		}
+		//}
 	}
 
 
-	//  I kept the pixel order as RGB as I was hoping to make the base classes pixel independent - that doesnt really matter though does it... sleep now.
-	//
-	//// Set pixel color from separate 8-bit R, G, B components:
-	//void Adafruit_WS2801::setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
-	//  if(n < numLEDs) { // Arrays are 0-indexed, thus NOT '<='
-	//    uint8_t *p = &pixels[n * 3];
-	//    // See notes later regarding color order
-	//    if(rgb_order == WS2801_RGB) {
-	//      *p++ = r;
-	//      *p++ = g;
-	//    } else {
-	//      *p++ = g;
-	//      *p++ = r;
-	//    }
-	//    *p++ = b;
-	//  }
-	//}
+	//Convienence method, updates based on member variables.
 	void Paint(void)
 	{
- Serial.println ("default paint: ");
+ 
 		Paint(pixels, numberOfPixels);	
 	}
 	// Function definition for the paint operation.  This is a templated class so the pin is dynamic to the instance.
@@ -315,135 +303,135 @@ public:
 	//
 	void Paint(uint8_t *  colors, unsigned int count)
 	{
-   //Serial.print ("2arg paint: ");
-		Paint( colors, 20,0, PORTB);
+		//TODO:  Refactor to use the specified pin bit
+		//THIS IS CURRENTLY HARD CODED TO PIN0 on PORTB or ( digital pin 8)
+		Paint( colors, numberOfPixels,0, PORTB);
 	}
+
+
+
+	//This method has the main functionality for updating the pixel string with new color information.
+	//the colors pointer is the pointer to the first pixels bits,  since memory is packed we will iterate by incrementing the pointer by 3
+	//count - the number of pixels in the string.
+	//ppin - the pin to output on
+	//port - the port the pin is located on
 	void Paint(uint8_t * colors, unsigned int count, uint8_t ppin, uint8_t port){
-
-
-
-                //here it is,  the dirty work.  truth be told i have no idea if this works.  I tried to test the timings 
-                //my only way is using the pickit2 in logic analyzer mode.  It was really helpful,  but i think its off a little bit.
-                //
-                for ( int i= 0; i<count ; i++)
-		{
-			asm volatile (
-                               " in r26, __SREG__     ; timing-critical, so no interrupts\n" 
-                                "cli  ; global interrupts disable\n" 
-				"    rcall write_byte%=\n"
-				"    rcall write_byte%=\n"
-				"    rcall write_byte%=\n"
-				"    rjmp string_end%=\n"
-				"write_byte%=:\n"
-                                 "    ld __tmp_reg__, Z+   ; get next 8 bits\n"   
-				"    rcall write_bit%=\n"
-				"    rcall write_bit%=\n"
-				"    rcall write_bit%=\n"
-				"    rcall write_bit%=\n"
-				"    rcall write_bit%=\n"
-				"    rcall write_bit%=\n"
-				"    rcall write_bit%=\n"
-				"    rcall write_bit%=\n"
-				"    ret\n"
-				"write_bit%=:\n"
-				"    cbi  %[port], %[pin] \n"      // hi -> lo sarting low state delay 2us
-				"    ldi  r18, 8         ;	delay for 2us\n" 
-				"13:  dec  r18		 ;\n" 
-				"    brne 13b            ;\n"
-				"    nop		 ;end delay\n"
-				"    rol __tmp_reg__     ; push bit to eval into carry \n"
-				"    brcc 15f             ; jump past the stretching of a low state for a 1 bit when it is a 0 \n "
-				"    ldi  r18, 34        ;	delay for 6us\n" 
-				"14:  dec  r18		 ;\n" 
-				"    brne 14b            ;\n"
-				"    nop		 ;end delay\n"
-				"15:  sbi %[port], %[pin]\n" 
-				"    ldi  r18, 45        ;delay for 6us\n" 
-				"16:  dec  r18		 ;\n" 
-				"    brne 16b            ;\n"
-				"    nop		 ;end delay\n"
-				"    ret\n"
-				"string_end%=:\n "
-                                "    out __SREG__, r26    ; reenable interrupts\n" 
-				: \
-				: [colors] "z" (colors),
-				[count] "w" (count),
-				[port] "I" (_SFR_IO_ADDR(PORTB)), 
-				[pin] "I" (0) 
-                                :"r18", "r26","cc", "memory"  );
-			delayMicroseconds(590);
-		}
-
-		//asm();          // Re-enable interrupts now that we are done.  Hopefully this works!
-		digitalWrite(pin, LOW);
-		delayMicroseconds(38);         // Hold the line low for 24 microseconds to send the reset signal.
-                //fix for individeal pixel addressing
+				//Reset the line so that the first output of "Lo" will be interpreted.
+				//TODO - refactor based on timer idea as specified at the end of the loop.
+				//       Hopefully that will speed up the pixel timing.
                 digitalWrite(pin, HIGH);
+               
+                //Begin the loop of updating the string of pixels with new color information
+			    //This code was written in avr assembler so that the timings could be made to be
+				//more precise than the delayMicroseconds allows for.
+                for ( int i= 0; i<count ; i++)
+				{
+					asm volatile (
+					"    in r26, __SREG__      ; timing-critical, so no interrupts\n" 
+                    "    cli                   ; global interrupts disable\n" 
+					"    rcall write_byte%=\n" // call write_byte for blue bits
+					"    rcall write_byte%=\n" // call write_byte for the green bits
+					"    rcall write_byte%=\n" // call write_byte for the red bits 
+					"    rjmp string_end%=\n"  // go to the end of the routine
+					"write_byte%=:\n"
+					"    ld __tmp_reg__, Z+\n" // get 8 bits from memory and increment the pointer\n"   
+					"    rcall write_bit%=\n"  // The next 8 calls handle outputting 8 bits of color information
+					"    rcall write_bit%=\n"
+					"    rcall write_bit%=\n"
+					"    rcall write_bit%=\n"
+					"    rcall write_bit%=\n"
+					"    rcall write_bit%=\n"
+					"    rcall write_bit%=\n"
+					"    rcall write_bit%=\n"
+					"    ret\n"                      // return from call for write byte
+					"write_bit%=:\n"                 // write_bit routine to handle the output of a single bit
+					"    cbi  %[port], %[pin] ;\n"   // set the pin to low ( works even if its already low )
+					"    ldi  r18, 10         ;\n"   // The next few lines are a loop to cause a delay for 2 microseconds 
+					"13:  dec  r18		      ;\n"   // decrement the counter
+					"    brne 13b             ;\n"   // if we are done killing time break out of the loop
+					"    nop                  ;\n"   // one extra nop just for good measure
+					"    rol __tmp_reg__      ;\n"   // rotate the next bit into the carry so we can check if its a 0 or 1
+					"    brcc 15f             ;\n"   // if its a 0 we will skip the next delay 
+					"    ldi  r18, 35         ;\n"   // must be a 1 so we need to add another 7 us onto the low state
+					"14:  dec  r18		      ;\n"   // check if we are done waiting ( this kills time, its all it does )  
+					"    brne 14b             ;\n"   // if we are done waiting for the 1 bit low state we can move on to the high
+					"    nop				  ;\n"   // one more clock cycle of delay
+					"15:  sbi %[port], %[pin] ;\n"   // change the pin from lo -> hi
+					"    ldi  r18, 45         ;\n"   // set a counter for the delay loop,  this time we are delaying 9us 
+					"16:  dec  r18		      ;\n"   // check if we are done waiting
+					"    brne 16b             ;\n"   // if we are done we can exit this function
+					"    nop				  ;\n"   // add one more clock cycle.
+					"    ret\n"                      // return from the write_bit call
+					"string_end%=:\n "               // we are all done writing out this pixels worth of bits
+					"    out __SREG__, r26    ;\n"	 // reenable interrupts, this should probally be happening outside the loop for efficiency, and safety, but its working....
+					: \
+					: [colors] "z" (colors),
+					[count] "w" (count),
+					[port] "I" (_SFR_IO_ADDR(PORTB)), 
+					[pin] "I" (0) 
+									:"r18", "r26","cc", "memory"  );
+				
+					//we finished one pixel,  the line is still high,  add the 600 microsecond pause,  
+					delayMicroseconds(585);  // 585 takes into account the timing from the loop and other stuff 
+			
+					//increment the pointer to the next pixel 
+					colors=colors+3;
+				}
 
-	
 
-
+				digitalWrite(pin, LOW);// Holding the Line low for 2ms.  Change made with Andy's findings on 1/28/13 that 600 was not necessary.
+				
+				delay(2);         // TODO change from a delay of 2 ms to a timer.
+								  // when this function returns there will likely be time needed to
+						          // fetch from input data.  The timer could be checked at the beginning of the 
+						          // paint call to finish the 2ms delay.  If a timer worked,  it should allow the updates to run faster.
+				
+				//Setting back to high.  This may not be needed still need to test this. 
+				// not needed as there will be a high at the beginning of the 
+				digitalWrite(pin, HIGH);
+				
 	}
-
-
-	//// Set pixel color from separate 8-bit R, G, B components using x,y coordinate system:
-	//void WM2999<char>::SetPixelColor(uint16_t x, uint16_t y, uint8_t r, uint8_t g, uint8_t b) {
-	//  boolean evenRow = ((y % 2) == 0);
-	//  // calculate x offset first
-	//  uint16_t offset = x % width;
-	//  if (!evenRow) {
-	//    offset = (width-1) - offset;
-	//  }
-	//  // add y offset
-	//  offset += y * width;
-	//  setPixelColor(offset, r, g, b);
-	//}
 
 	// Set pixel color from separate 8-bit R, G, B components:
+	// n is the pixel index (0-19) - its a bit backwards so,  pixel 0 is the 
+	// last pixel in the string.  
+	// r, g, b params are 8 bit RGB value
+	// 
+	//  For example:  RGB r=255,g=255, b=255
+	//  in binary :  11111111 11111111 11111111
+	//                RGB r=128, g=128, b=128
+	//               10000000 10000000 10000000
+	// 
+	//  the most significant bit in each byte control the color being on
+	//   so:  10000000  is less intense than 10000001
+	//
+	//  TODO research more about color mixing and support for colors.
 	void SetPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
 		if(n < numberOfPixels) { // Arrays are 0-indexed, thus NOT '<='
 			uint8_t *p = &pixels[n * 3];
 			*p++ = b;
- // Serial.print("b:");         
-                         //Serial.println(*p++);
 			*p++ = g;
-  //Serial.print("g:");         
-                       //  Serial.println(*p++);
 			*p = r;
-  //Serial.print("r:");         
-                        // Serial.println(*p);
- 
-		}
-else 
-  Serial.print("error in void SetPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b)");  
-
+	  	}
 	}
 
 	// Set pixel color from 'packed' 32-bit RGB value:
+	// Value will be in format Blue, Green, Red and 
+	// the color C only 24 of the 32 bits are used.
 	void SetPixelColor(uint16_t n, uint32_t c) {
 		if(n < numberOfPixels) { // Arrays are 0-indexed, thus NOT '<='
 			uint8_t *p = &pixels[n * 3];
                         *p++ = c;         // Blue
-                        // Serial.print("b:");         
-                        // Serial.println(*p);
-                        *p++ = c >>  8; // Green
-		         ////Serial.print("g:");         
-                         //Serial.println(*p);
-                	*p = c >> 16; // Red
-		        // Serial.print("r:");         
-                        // Serial.println(*p);
-                			
-  
-		}
-else
-
- Serial.print("error in void SetPixelColor(uint16_t n, uint8_t raqsdasd, uint8_t g, uint8_t b)");  
-
-                    
+                        *p++ = c >>  8;   // Green
+                		*p = c >> 16;     // Red
+		        
+		}                   
 	}
 
 
 	// Query color from previously-set pixel (returns packed 32-bit RGB value)
+	// TODO:  Test this function,  Unsure if it is working correctly.
+	//		  
 	uint32_t GetPixelColor(uint16_t n) {
 		if(n < numberOfPixels) {
 			uint16_t ofs = n * 3;
@@ -451,71 +439,51 @@ else
 			// internal color representation is native to different pixel
 			// types.  For compatibility with existing code, 'packed' RGB
 			// values passed in or out are always 0xRRGGBB order.
-			return (true) ?
-				((uint32_t)pixels[ofs] << 16) | ((uint16_t) pixels[ofs + 1] <<  8) | pixels[ofs + 2] :
-			(pixels[ofs] <<  8) | ((uint32_t)pixels[ofs + 1] << 16) | pixels[ofs + 2];
+			return 
+				((uint32_t)pixels[ofs] << 16) | ((uint16_t) pixels[ofs + 1] <<  8) | pixels[ofs + 2];
 		}
 		return 0;
 	}
-	//definition of helper method to return pixel count
-	uint32_t GetPixelCount(void) {
 
+	//Accessor method to expose the number of pixels in the string
+	uint32_t GetPixelCount(void) {
 		return numberOfPixels;
 
 	}
-	//definition of helper method to return pixel count
+
+	//Mutator to set the number of pixels in the string
 	void SetPixelCount(  uint32_t pCount) {
 		alloc(pCount);
 
 	}
 
+
+	// Handle memory allocation for the entire strings worth of data.
+	// This allocation will be a continuous "packed" section of memory
+	// The pixels pointer in this class is the base address of that memory location
 	void alloc(uint16_t n) {
      
-
+		// If we already have some memory allocated, free it before getting more.
   		if (pixels != NULL) {
 			free(pixels);
 		}
+		// If something goes wrong with the allocation 
+		// the pixel string will be set to length 0
 		numberOfPixels = ((pixels = (uint8_t *)calloc(n, 3)) != NULL) ? n : 0;
        
-        uint8_t *temp = pixels;
-        
-
-        for (int i=0;i<numberOfPixels;i++)
-        {
-                 
-       *(temp++) = 0;
-        // Serial.print("b:");         
-        // Serial.println(*temp);
-         *(temp++)=0;
-        // Serial.print("g:");                    
-        // Serial.println(*temp);
-         *(temp++)=0;
-       //Serial.print("r:"); 
-        // Serial.println(*temp);
        
-
-                    
         
-          //Serial.println(&temp);
-        }
  
 }
 
-private:
-	//number of pixels
-	uint16_t numberOfPixels;
-
-	//pointer to each color value (24 bits 3 bytes each)
-	uint8_t * pixels;
-
-	//pin on arduino
-	//unsigned char pin;
-
+private:	
+	uint16_t numberOfPixels;   //number of pixels
+	uint8_t * pixels;		   //Pointer to the base address of the pixel colors in memory
+							   //if alloc has been called this will be initialized to be pointing
+							   //at pixel 0, green bits.  Note ( pixel 0 is the last pixel in the string Not the first!)
+	
 	//DataPort register
 	volatile uint8_t * dataport;   
  
-	// allocate memory for pixels
-	//example for pre-allocation of pixel space from ADAFRUIT WS2801 example
-
 };
 

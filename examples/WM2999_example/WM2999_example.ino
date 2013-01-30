@@ -36,62 +36,82 @@ WM2999<8> strip =  WM2999<8>();
 
 
 void setup() {
-     //strip 
-     pinMode(8, OUTPUT);
-//digitalWrite(8, LOW);
-    
-Serial.begin(115200);
-        strip.SetPixelCount(20);
-        
-        strip.Start();
-        
-       // strip.Paint();
+  //strip   set to use Arduino digital 8 pin
+  pinMode(8, OUTPUT);
+ 
+ //initialize to 20 pixels;
+  strip.SetPixelCount(20);
 }
-
 
 void loop() {
 
- int i;
+    int i, j;
+	//shut em all off so we can start with a clean slate;
+	for ( i=0;i<strip.GetPixelCount();i++){
+		strip.SetPixelColor(i, Color(0,0,0));
+	}
+
+	strip.Paint();
+	delay(2000);
+
+	//now lets turn them back on
+
+  //lets do some chasing exercises for warmup    
+  colorWipe(Color(255, 0, 0), 50); //red   
+  colorWipe(Color(0, 255, 0), 50); //green
+  colorWipe(Color(0, 0, 255), 30); //blue
+
+  //chase is iterating backwards from the colorwipe 
+  chase(Color(255, 255, 255), 30); //white
+  chase(Color(255, 90, 5), 10); 
+  chase(Color(20, 255, 5), 5); 
+  chase(Color(128, 123, 238), 5); 
+  chase(Color(128, 128, 128), 5); 
+  chase(Color(128, 0, 0), 5); 
+  chase(Color(255, 255, 5), 5); 
   
-  for (i=0; i < 20; i++) {
-      strip.SetPixelColor(i, 0, 0, 255);
-      
-     
-  }
-  strip.Paint();
-  delay(2000);
-   for (i=0; i < 20; i++) {
-      strip.SetPixelColor(i, 0, 255, 0);
-      
-     
-  }
-  strip.Paint();
-  delay(2000); 
-     for (i=0; i < 20; i++) {
-      strip.SetPixelColor(i, 255, 0, 0);
-      
-     
-  }
-  strip.Paint();
-  delay(2000); 
-//colorWipe(Color(255, 255, 255), 1000); //white
-//  colorWipe(Color(0, 0, 255), 100); //red
-//   
-//   colorWipe(Color(0, 255, 0), 10000); //green
-// colorWipe(Color(0, 0, 255), 10000); //blue
-// colorWipe(Color(128, 128, 128), 100);
-//  rainbow(100);
-//  rainbowCycle(200);
- 
-       }
+  //now lets get crazy and do both
+
+  colorWipe(Color(255, 5,34), 5); 
+  chase(Color(99, 90, 5), 1);   
+  colorWipe(Color(0, 2, 0), 5); 
+  chase(Color(3, 55, 5), 1); 
+  colorWipe(Color(0, 0, 33), 6); 
+  chase(Color(255, 90, 5), 10); 
+   colorWipe(Color(255, 0, 0), 5); 
+  chase(Color(255, 90, 5), 9);   
+  colorWipe(Color(0, 255, 0), 5); 
+  chase(Color(255, 90, 5), 1); 
+  colorWipe(Color(0, 0, 255), 3); 
+  chase(Color(255, 90, 5), 1); 
+   colorWipe(Color(255, 0, 3), 5); 
+  chase(Color(255, 90, 224), 1);   
+  colorWipe(Color(0, 255, 0), 5); 
+  chase(Color(255, 90, 0), 1); 
+  colorWipe(Color(0, 0, 255), 3); 
+  chase(Color(255, 90, 5), 1); 
+   colorWipe(Color(255, 45, 7), 5); 
+  chase(Color(255, 90, 5), 1);   
+  colorWipe(Color(0, 255, 0), 5); 
+  chase(Color(255, 90, 5), 1); 
+  colorWipe(Color(0, 0, 255), 3); 
+  chase(Color(255, 90, 5), 1); 
+  
+
+  //lets look at some pretty colors for a little bit
+   rainbow(10);
+   rainbowCycle(10);
 
 
+}
 
+
+//This method is from the adafruit example program,  its pretty 
+//try not to touch any live wires while being mesmorized by the pretty colors
 // Slightly different, this one makes the rainbow wheel equally distributed 
 // along the chain
 void rainbowCycle(uint8_t wait) {
   int i, j;
-  
   for (j=0; j < 256 * 5; j++) {     // 5 cycles of all 25 colors in the wheel
     for (i=0; i < strip.GetPixelCount(); i++) {
       // tricky math! we use each pixel as a fraction of the full 96-color wheel
@@ -101,22 +121,39 @@ void rainbowCycle(uint8_t wait) {
       strip.SetPixelColor(i, Wheel( ((i * 256 / strip.GetPixelCount()) + j) % 256) );
     }  
     strip.Paint();   // write all the pixels out
-    delay(4000);
+    delay(wait);
   }
 }
 
+
+// fill the dots one after the other with said color
+// should chase from the controller box to the end of the string.
+// good for testing purposes
+void chase(uint32_t c, uint8_t wait) {
+  int i;
+   for (i=19; i >= 0; i--) {
+    strip.SetPixelColor(i, c);
+	//paintand delay while in the loop to get the effect of chase
+	strip.Paint();
+	//use a slow setting if you are getting dizy
+	delay(wait);
+  }
+  
+}
+
+// this will "chase" from the very "last" pixel in the string
+// back to the controller.
 // fill the dots one after the other with said color
 // good for testing purposes
 void colorWipe(uint32_t c, uint8_t wait) {
   int i;
-  
+  // for (i=20; i >= 0; i--) {
   for (i=0; i < strip.GetPixelCount(); i++) {
-      strip.SetPixelColor(i, c);
-      
-     
+    strip.SetPixelColor(i, c);
+
+	strip.Paint();
+	delay(wait);
   }
-  strip.Paint();
-  delay(wait);
 }
 
 /* Helper functions */
@@ -124,14 +161,13 @@ void colorWipe(uint32_t c, uint8_t wait) {
 // Create a 24 bit color value from R,G,B
 uint32_t Color(byte r, byte g, byte b)
 {
-  
+  //Note,  we are storing these as good old RGB NOT the pixel order BGR
   uint32_t c;
   c = r;
   c <<= 8;
   c |= g;
   c <<= 8;
   c |= b;
-  Serial.print( "uint32color returned : "); Serial.print(c);
   return c;
 }
 
@@ -141,25 +177,28 @@ uint32_t Color(byte r, byte g, byte b)
 uint32_t Wheel(byte WheelPos)
 {
   if (WheelPos < 85) {
-   return Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-  } else if (WheelPos < 170) {
-   WheelPos -= 85;
-   return Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  } else {
-   WheelPos -= 170; 
-   return Color(0, WheelPos * 3, 255 - WheelPos * 3);
+    return Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+  } 
+  else if (WheelPos < 170) {
+    WheelPos -= 85;
+    return Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  } 
+  else {
+    WheelPos -= 170; 
+    return Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
 
 
 void rainbow(uint8_t wait) {
   int i, j;
-   
+
   for (j=0; j < 256; j++) {     // 3 cycles of all 256 colors in the wheel
     for (i=0; i < strip.GetPixelCount(); i++) {
       strip.SetPixelColor(i, Wheel( (i + j) % 255));
     }  
     strip.Paint();   // write all the pixels out
-    delay(3000);
+    delay(20);
   }
 }
+

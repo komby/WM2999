@@ -91,7 +91,7 @@ const unsigned char pinAddr[] =
 	_SFR_IO_ADDR(PORTB),
 	_SFR_IO_ADDR(PORTB),
 	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTD),    
+	_SFR_IO_ADDR(PORTD),
 };
 
 #elif defined(__AVR__) && !defined(NUM_DIGITAL_PINS) || NUM_DIGITAL_PINS == 20
@@ -134,13 +134,13 @@ const unsigned char pinAddr[] =
 
 const unsigned char pinBit[] =
 {
-	0, 1, 4, 5, 5, 3, 3, 4, 5, 6, 
-	4, 5, 6, 7, 1, 0, 1, 0, 3, 2, 
-	1, 0, 0, 1, 2, 3, 4, 5, 6, 7, 
-	7, 6, 5, 4, 3, 2, 1, 0, 7, 2, 
-	1, 0, 7, 6, 5, 4, 3, 2, 1, 0, 
-	3, 2, 1, 0, 0, 1, 2, 3, 4, 5, 
-	6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 
+	0, 1, 4, 5, 5, 3, 3, 4, 5, 6,
+	4, 5, 6, 7, 1, 0, 1, 0, 3, 2,
+	1, 0, 0, 1, 2, 3, 4, 5, 6, 7,
+	7, 6, 5, 4, 3, 2, 1, 0, 7, 2,
+	1, 0, 7, 6, 5, 4, 3, 2, 1, 0,
+	3, 2, 1, 0, 0, 1, 2, 3, 4, 5,
+	6, 7, 0, 1, 2, 3, 4, 5, 6, 7,
 };
 
 const unsigned char pinAddr[] =
@@ -288,8 +288,8 @@ public:
 	//Convienence method, updates based on member variables.
 	void Paint(void)
 	{
- 
-		Paint(pixels, numberOfPixels);	
+        // not sure why this call needs to be here,  turns out if we dont daisy chain through it doesnt work??
+		Paint(pixels, numberOfPixels);
 	}
 	// Function definition for the paint operation.  This is a templated class so the pin is dynamic to the instance.
 	// note that since this is using registers directly  r18,r19,r20 will definately get clobbered,  I am unsure how
@@ -303,9 +303,8 @@ public:
 	//
 	void Paint(uint8_t *  colors, unsigned int count)
 	{
-		//TODO:  Refactor to use the specified pin bit
-		//THIS IS CURRENTLY HARD CODED TO PIN0 on PORTB or ( digital pin 8)
-		Paint( colors, numberOfPixels,0, PORTB);
+		//using the pinBit and PinAddr now depending on the chip in use.
+		Paint( colors, numberOfPixels,pinBit[pin], pinAddr[pin]);
 	}
 
 
@@ -315,11 +314,11 @@ public:
 	//count - the number of pixels in the string.
 	//ppin - the pin to output on
 	//port - the port the pin is located on
-	void Paint(uint8_t * colors, unsigned int count, uint8_t ppin, uint8_t port){
+	void Paint(uint8_t * colors, unsigned int count, uint8_t ppin, uint8_t pport){
 				//Reset the line so that the first output of "Lo" will be interpreted.
 				//TODO - refactor based on timer idea as specified at the end of the loop.
 				//       Hopefully that will speed up the pixel timing.
-                digitalWrite(pin, HIGH);
+		digitalWrite(pin, HIGH);
                
                 //Begin the loop of updating the string of pixels with new color information
 			    //This code was written in avr assembler so that the timings could be made to be
@@ -367,8 +366,8 @@ public:
 					: \
 					: [colors] "z" (colors),
 					[count] "w" (count),
-					[port] "I" (_SFR_IO_ADDR(PORTB)), 
-					[pin] "I" (0) 
+					[port] "I" (pport),
+					[pin] "I" (ppin)
 									:"r18", "r26","cc", "memory"  );
 				
 					//we finished one pixel,  the line is still high,  add the 600 microsecond pause,  
@@ -379,7 +378,7 @@ public:
 				}
 
 
-				digitalWrite(pin, LOW);// Holding the Line low for 2ms.  Change made with Andy's findings on 1/28/13 that 600 was not necessary.
+            	digitalWrite(pin, LOW);// Holding the Line low for 2ms.  Change made with Andy's findings on 1/28/13 that 600 was not necessary.
 				
 				delay(2);         // TODO change from a delay of 2 ms to a timer.
 								  // when this function returns there will likely be time needed to

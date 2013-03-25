@@ -26,7 +26,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
-
+#include <IPixelControl.h>
 #endif
 
 //struct to store the pixel color information
@@ -221,28 +221,14 @@ const unsigned char pinAddr[] =
 
 
 
-//base class for pixels 
-class PixelBase {
-public: 
-	//	void virtual Paint(rgb_color *, unsigned int count) = 0;
-	void virtual Paint(uint8_t * colors , unsigned int count) = 0;
-	void virtual Paint(void) = 0;
-	uint32_t virtual GetPixelCount( void ) = 0;
-	void virtual SetPixelCount( uint32_t ) = 0;
-	void virtual Start( void ) = 0;
-	uint32_t virtual GetPixelColor(uint16_t n) = 0;
-	//n is the index of previous color
-	//	uint32_t virtual SetPixelColor(uint16_t n) = 0;
-	void virtual SetPixelColor(uint16_t n, uint32_t c)  = 0;
-	void virtual SetPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) = 0;
-};
+
 
 
 
 //Template class to handle one string of pixels on a particular pin.
 //the pin is meant to specify what you know as a pin on an arduino,  not a pin on the atmega chip
 //IE Pin 8 would be pin0, portb - your code would use 8 , not 0.
-template<unsigned int pin> class WM2999 : public PixelBase
+template<unsigned int pin> class WM2999 : public IPixelControl
 {
 public:	
 
@@ -470,10 +456,51 @@ public:
 		// the pixel string will be set to length 0
 		numberOfPixels = ((pixels = (uint8_t *)calloc(n, 3)) != NULL) ? n : 0;
        
-       
+       }
         
+		/**
+		 * Helper to initialize the string (make sure its working)
+		 * This may also be used for debugging...
+		 *
+		 * @Param c - the 24 bit RGB color value - this is the integer representation of a color
+		 * @param wait - the duration to wait after the color is set.
+		 */
+
+		void ColorWipe(uint32_t c, uint8_t wait) {
+			int i;
+
+			for (i=0; i < this->GetPixelCount(); i++) {
+				this->SetPixelColor(i, c);
+				this->Paint();
+				delay(wait);
+			}
+			
+		}
+
+		/* Helper functions */
+
+		/**
+		 * Create a 24 bit color value from R,G,B
+		 *
+		 * @param r - red 0-255 value
+		 * @param g - green 0-255 value
+		 * @param b - blue 0-255 value
+		 *
+		 * @return the color in a 24 bit pattern
+		 */
+		uint32_t Color(byte r, byte g, byte b)
+		{
+			uint32_t c;
+			c = b;
+			c <<= 8;
+			c |= g;
+			c <<= 8;
+			c |= r;
+			return c;
+		}
+
  
-}
+
 
 private:	
 	uint16_t numberOfPixels;   //number of pixels

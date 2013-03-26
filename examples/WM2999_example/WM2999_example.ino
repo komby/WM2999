@@ -1,8 +1,8 @@
-// LED Pixel Driver for Holiday Time 20ct "Color Changing" lights
+// LED Pixel Driver for Holiday Time 20ct "color Changing" lights
 // Written By:  Greg Scull (komby) 1/2013
 // All Use subject to license terms.
 
-#include "WM2999.h"
+#include <WM2999.h>
 //#include <Arduino.h>
 
 //
@@ -31,71 +31,71 @@
 // 
 //
 
-
-WM2999<8> strip =  WM2999<8>();
+#define OUTPUT_PIN 8
+WM2999 strip =  WM2999(OUTPUT_PIN);
 
 
 void setup() {
   //strip   set to use Arduino digital 8 pin
-  pinMode(8, OUTPUT);
+  pinMode(OUTPUT_PIN, OUTPUT);
  
  //initialize to 20 pixels;
-  strip.SetPixelCount(20);
+  strip.setPixelCount(20);
 }
 
 void loop() {
 
     int i, j;
 	//shut em all off so we can start with a clean slate;
-	for ( i=0;i<strip.GetPixelCount();i++){
-		strip.SetPixelColor(i, Color(0,0,0));
+	for ( i=0;i<strip.getPixelCount();i++){
+		strip.setPixelColor(i, 0,0,0);
 	}
 
-	strip.Paint();
+	strip.paint();
 	delay(2000);
 
 	//now lets turn them back on
 
   //lets do some chasing exercises for warmup    
-  colorWipe(Color(255, 0, 0), 50); //red   
-  colorWipe(Color(0, 255, 0), 50); //green
-  colorWipe(Color(0, 0, 255), 30); //blue
+  colorWipe(color(255, 0, 0), 50); //red   
+  colorWipe(color(0, 255, 0), 50); //green
+  colorWipe(color(0, 0, 255), 30); //blue
 
   //chase is iterating backwards from the colorwipe 
-  chase(Color(255, 255, 255), 30); //white
-  chase(Color(255, 90, 5), 10); 
-  chase(Color(20, 255, 5), 5); 
-  chase(Color(128, 123, 238), 5); 
-  chase(Color(128, 128, 128), 5); 
-  chase(Color(128, 0, 0), 5); 
-  chase(Color(255, 255, 5), 5); 
+  chase(color(255, 255, 255), 30); //white
+  chase(color(255, 90, 5), 10); 
+  chase(color(20, 255, 5), 5); 
+  chase(color(128, 123, 238), 5); 
+  chase(color(128, 128, 128), 5); 
+  chase(color(128, 0, 0), 5); 
+  chase(color(255, 255, 5), 5); 
   
   //now lets get crazy and do both
 
-  colorWipe(Color(255, 5,34), 5); 
-  chase(Color(99, 90, 5), 1);   
-  colorWipe(Color(0, 2, 0), 5); 
-  chase(Color(3, 55, 5), 1); 
-  colorWipe(Color(0, 0, 33), 6); 
-  chase(Color(255, 90, 5), 10); 
-   colorWipe(Color(255, 0, 0), 5); 
-  chase(Color(255, 90, 5), 9);   
-  colorWipe(Color(0, 255, 0), 5); 
-  chase(Color(255, 90, 5), 1); 
-  colorWipe(Color(0, 0, 255), 3); 
-  chase(Color(255, 90, 5), 1); 
-   colorWipe(Color(255, 0, 3), 5); 
-  chase(Color(255, 90, 224), 1);   
-  colorWipe(Color(0, 255, 0), 5); 
-  chase(Color(255, 90, 0), 1); 
-  colorWipe(Color(0, 0, 255), 3); 
-  chase(Color(255, 90, 5), 1); 
-   colorWipe(Color(255, 45, 7), 5); 
-  chase(Color(255, 90, 5), 1);   
-  colorWipe(Color(0, 255, 0), 5); 
-  chase(Color(255, 90, 5), 1); 
-  colorWipe(Color(0, 0, 255), 3); 
-  chase(Color(255, 90, 5), 1); 
+  colorWipe(color(255, 5,34), 5); 
+  chase(color(99, 90, 5), 1);   
+  colorWipe(color(0, 2, 0), 5); 
+  chase(color(3, 55, 5), 1); 
+  colorWipe(color(0, 0, 33), 6); 
+  chase(color(255, 90, 5), 10); 
+   colorWipe(color(255, 0, 0), 5); 
+  chase(color(255, 90, 5), 9);   
+  colorWipe(color(0, 255, 0), 5); 
+  chase(color(255, 90, 5), 1); 
+  colorWipe(color(0, 0, 255), 3); 
+  chase(color(255, 90, 5), 1); 
+   colorWipe(color(255, 0, 3), 5); 
+  chase(color(255, 90, 224), 1);   
+  colorWipe(color(0, 255, 0), 5); 
+  chase(color(255, 90, 0), 1); 
+  colorWipe(color(0, 0, 255), 3); 
+  chase(color(255, 90, 5), 1); 
+   colorWipe(color(255, 45, 7), 5); 
+  chase(color(255, 90, 5), 1);   
+  colorWipe(color(0, 255, 0), 5); 
+  chase(color(255, 90, 5), 1); 
+  colorWipe(color(0, 0, 255), 3); 
+  chase(color(255, 90, 5), 1); 
   
 
   //lets look at some pretty colors for a little bit
@@ -113,14 +113,14 @@ void loop() {
 void rainbowCycle(uint8_t wait) {
   int i, j;
   for (j=0; j < 256 * 5; j++) {     // 5 cycles of all 25 colors in the wheel
-    for (i=0; i < strip.GetPixelCount(); i++) {
+    for (i=0; i < strip.getPixelCount(); i++) {
       // tricky math! we use each pixel as a fraction of the full 96-color wheel
       // (thats the i / strip.numPixels() part)
       // Then add in j which makes the colors go around per pixel
       // the % 96 is to make the wheel cycle around
-      strip.SetPixelColor(i, Wheel( ((i * 256 / strip.GetPixelCount()) + j) % 256) );
+      strip.setPixelColor(i, Wheel( ((i * 256 / strip.getPixelCount()) + j) % 256) );
     }  
-    strip.Paint();   // write all the pixels out
+    strip.paint();   // write all the pixels out
     delay(wait);
   }
 }
@@ -132,9 +132,9 @@ void rainbowCycle(uint8_t wait) {
 void chase(uint32_t c, uint8_t wait) {
   int i;
    for (i=19; i >= 0; i--) {
-    strip.SetPixelColor(i, c);
+    strip.setPixelColor(i, c);
 	//paintand delay while in the loop to get the effect of chase
-	strip.Paint();
+	strip.paint();
 	//use a slow setting if you are getting dizy
 	delay(wait);
   }
@@ -148,10 +148,10 @@ void chase(uint32_t c, uint8_t wait) {
 void colorWipe(uint32_t c, uint8_t wait) {
   int i;
   // for (i=20; i >= 0; i--) {
-  for (i=0; i < strip.GetPixelCount(); i++) {
-    strip.SetPixelColor(i, c);
+  for (i=0; i < strip.getPixelCount(); i++) {
+    strip.setPixelColor(i, c);
 
-	strip.Paint();
+	strip.paint();
 	delay(wait);
   }
 }
@@ -159,7 +159,7 @@ void colorWipe(uint32_t c, uint8_t wait) {
 /* Helper functions */
 
 // Create a 24 bit color value from R,G,B
-uint32_t Color(byte r, byte g, byte b)
+uint32_t color(byte r, byte g, byte b)
 {
   //Note,  we are storing these as good old RGB NOT the pixel order BGR
   uint32_t c;
@@ -177,15 +177,15 @@ uint32_t Color(byte r, byte g, byte b)
 uint32_t Wheel(byte WheelPos)
 {
   if (WheelPos < 85) {
-    return Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+    return color(WheelPos * 3, 255 - WheelPos * 3, 0);
   } 
   else if (WheelPos < 170) {
     WheelPos -= 85;
-    return Color(255 - WheelPos * 3, 0, WheelPos * 3);
+    return color(255 - WheelPos * 3, 0, WheelPos * 3);
   } 
   else {
     WheelPos -= 170; 
-    return Color(0, WheelPos * 3, 255 - WheelPos * 3);
+    return color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
 
@@ -194,10 +194,10 @@ void rainbow(uint8_t wait) {
   int i, j;
 
   for (j=0; j < 256; j++) {     // 3 cycles of all 256 colors in the wheel
-    for (i=0; i < strip.GetPixelCount(); i++) {
-      strip.SetPixelColor(i, Wheel( (i + j) % 255));
+    for (i=0; i < strip.getPixelCount(); i++) {
+      strip.setPixelColor(i, Wheel( (i + j) % 255));
     }  
-    strip.Paint();   // write all the pixels out
+    strip.paint();   // write all the pixels out
     delay(20);
   }
 }

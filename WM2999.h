@@ -26,8 +26,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
-#include <IPixelControl.h>
-#endif
+
 
 //struct to store the pixel color information
 //this is a packed struct such that the memory
@@ -91,7 +90,7 @@ const unsigned char pinAddr[] =
 	_SFR_IO_ADDR(PORTB),
 	_SFR_IO_ADDR(PORTB),
 	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTD),
+	_SFR_IO_ADDR(PORTD),    
 };
 
 #elif defined(__AVR__) && !defined(NUM_DIGITAL_PINS) || NUM_DIGITAL_PINS == 20
@@ -134,13 +133,13 @@ const unsigned char pinAddr[] =
 
 const unsigned char pinBit[] =
 {
-	0, 1, 4, 5, 5, 3, 3, 4, 5, 6,
-	4, 5, 6, 7, 1, 0, 1, 0, 3, 2,
-	1, 0, 0, 1, 2, 3, 4, 5, 6, 7,
-	7, 6, 5, 4, 3, 2, 1, 0, 7, 2,
-	1, 0, 7, 6, 5, 4, 3, 2, 1, 0,
-	3, 2, 1, 0, 0, 1, 2, 3, 4, 5,
-	6, 7, 0, 1, 2, 3, 4, 5, 6, 7,
+	0, 1, 4, 5, 5, 3, 3, 4, 5, 6, 
+	4, 5, 6, 7, 1, 0, 1, 0, 3, 2, 
+	1, 0, 0, 1, 2, 3, 4, 5, 6, 7, 
+	7, 6, 5, 4, 3, 2, 1, 0, 7, 2, 
+	1, 0, 7, 6, 5, 4, 3, 2, 1, 0, 
+	3, 2, 1, 0, 0, 1, 2, 3, 4, 5, 
+	6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 
 };
 
 const unsigned char pinAddr[] =
@@ -228,10 +227,14 @@ const unsigned char pinAddr[] =
 //Template class to handle one string of pixels on a particular pin.
 //the pin is meant to specify what you know as a pin on an arduino,  not a pin on the atmega chip
 //IE Pin 8 would be pin0, portb - your code would use 8 , not 0.
-template<unsigned int pin> class WM2999 : public IPixelControl
+class WM2999 
 {
 public:	
 
+		WM2999(uint8_t ppin): pin(ppin){
+		}
+		
+		
 	//cleanup from the alloc calls - thanks to adafruit driver for idea
 	~WM2999(void)
 	{
@@ -242,7 +245,7 @@ public:
 	}
 
 	// setup the pins
-	void Start() {
+	void start() {
 		pinMode(pin, OUTPUT);
 	}
 
@@ -272,10 +275,10 @@ public:
 
 
 	//Convienence method, updates based on member variables.
-	void Paint(void)
+	void paint(void)
 	{
-        // not sure why this call needs to be here,  turns out if we dont daisy chain through it doesnt work??
-		Paint(pixels, numberOfPixels);
+ 
+		paint(pixels, numberOfPixels);	
 	}
 	// Function definition for the paint operation.  This is a templated class so the pin is dynamic to the instance.
 	// note that since this is using registers directly  r18,r19,r20 will definately get clobbered,  I am unsure how
@@ -287,10 +290,11 @@ public:
 	// And a LOT of help from Andy L. @ DIYC for getting these pixels timing figured out and explaining it to us mortals 
 	// Also thanks to Zeph for posing the question and others for finding them for 5$ a set :)  Glad i got 20 of them now !
 	//
-	void Paint(uint8_t *  colors, unsigned int count)
+	void paint(uint8_t *  colors, unsigned int count)
 	{
-		//using the pinBit and PinAddr now depending on the chip in use.
-		Paint( colors, numberOfPixels,pinBit[pin], pinAddr[pin]);
+		//TODO:  Refactor to use the specified pin bit
+		//THIS IS CURRENTLY HARD CODED TO PIN0 on PORTB or ( digital pin 8)
+		paint( colors, numberOfPixels,0, PORTB);
 	}
 
 
@@ -300,11 +304,11 @@ public:
 	//count - the number of pixels in the string.
 	//ppin - the pin to output on
 	//port - the port the pin is located on
-	void Paint(uint8_t * colors, unsigned int count, uint8_t ppin, uint8_t pport){
+	void paint(uint8_t * colors, unsigned int count, uint8_t ppin, uint8_t port){
 				//Reset the line so that the first output of "Lo" will be interpreted.
 				//TODO - refactor based on timer idea as specified at the end of the loop.
 				//       Hopefully that will speed up the pixel timing.
-		digitalWrite(pin, HIGH);
+                digitalWrite(pin, HIGH);
                
                 //Begin the loop of updating the string of pixels with new color information
 			    //This code was written in avr assembler so that the timings could be made to be
@@ -352,8 +356,8 @@ public:
 					: \
 					: [colors] "z" (colors),
 					[count] "w" (count),
-					[port] "I" (pport),
-					[pin] "I" (ppin)
+					[port] "I" (_SFR_IO_ADDR(PORTB)), 
+					[pin] "I" (0) 
 									:"r18", "r26","cc", "memory"  );
 				
 					//we finished one pixel,  the line is still high,  add the 600 microsecond pause,  
@@ -364,7 +368,7 @@ public:
 				}
 
 
-            	digitalWrite(pin, LOW);// Holding the Line low for 2ms.  Change made with Andy's findings on 1/28/13 that 600 was not necessary.
+				digitalWrite(pin, LOW);// Holding the Line low for 2ms.  Change made with Andy's findings on 1/28/13 that 600 was not necessary.
 				
 				delay(2);         // TODO change from a delay of 2 ms to a timer.
 								  // when this function returns there will likely be time needed to
@@ -391,7 +395,7 @@ public:
 	//   so:  10000000  is less intense than 10000001
 	//
 	//  TODO research more about color mixing and support for colors.
-	void SetPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
+	void setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
 		if(n < numberOfPixels) { // Arrays are 0-indexed, thus NOT '<='
 			uint8_t *p = &pixels[n * 3];
 			*p++ = b;
@@ -403,21 +407,21 @@ public:
 	// Set pixel color from 'packed' 32-bit RGB value:
 	// Value will be in format Blue, Green, Red and 
 	// the color C only 24 of the 32 bits are used.
-	void SetPixelColor(uint16_t n, uint32_t c) {
-		if(n < numberOfPixels) { // Arrays are 0-indexed, thus NOT '<='
-			uint8_t *p = &pixels[n * 3];
-                        *p++ = c;         // Blue
-                        *p++ = c >>  8;   // Green
-                		*p = c >> 16;     // Red
+	//void SetPixelColor(uint16_t n, uint32_t c) {
+		//if(n < numberOfPixels) { // Arrays are 0-indexed, thus NOT '<='
+		//	uint8_t *p = &pixels[n * 3];
+            //            *p++ = c;         // Blue
+            //            *p++ = c >>  8;   // Green
+             //   		*p = c >> 16;     // Red
 		        
-		}                   
-	}
+		//}                   
+	//}
 
 
 	// Query color from previously-set pixel (returns packed 32-bit RGB value)
 	// TODO:  Test this function,  Unsure if it is working correctly.
 	//		  
-	uint32_t GetPixelColor(uint16_t n) {
+	uint32_t getPixelColor(uint16_t n) {
 		if(n < numberOfPixels) {
 			uint16_t ofs = n * 3;
 			// To keep the show() loop as simple & fast as possible, the
@@ -431,13 +435,13 @@ public:
 	}
 
 	//Accessor method to expose the number of pixels in the string
-	uint32_t GetPixelCount(void) {
+	uint32_t getPixelCount(void) {
 		return numberOfPixels;
 
 	}
 
 	//Mutator to set the number of pixels in the string
-	void SetPixelCount(  uint32_t pCount) {
+	void setPixelCount(  uint32_t pCount) {
 		alloc(pCount);
 
 	}
@@ -466,12 +470,12 @@ public:
 		 * @param wait - the duration to wait after the color is set.
 		 */
 
-		void ColorWipe(uint32_t c, uint8_t wait) {
+		void colorWipe(uint32_t c, uint8_t wait) {
 			int i;
 
-			for (i=0; i < this->GetPixelCount(); i++) {
-				this->SetPixelColor(i, c);
-				this->Paint();
+			for (i=0; i < this->getPixelCount(); i++) {
+				this->setPixelColor(i, c);
+				this->paint();
 				delay(wait);
 			}
 			
@@ -488,7 +492,7 @@ public:
 		 *
 		 * @return the color in a 24 bit pattern
 		 */
-		uint32_t Color(byte r, byte g, byte b)
+		uint32_t color(byte r, byte g, byte b)
 		{
 			uint32_t c;
 			c = b;
@@ -502,14 +506,14 @@ public:
  
 
 
-private:	
+protected:	
 	uint16_t numberOfPixels;   //number of pixels
 	uint8_t * pixels;		   //Pointer to the base address of the pixel colors in memory
 							   //if alloc has been called this will be initialized to be pointing
 							   //at pixel 0, green bits.  Note ( pixel 0 is the last pixel in the string Not the first!)
-	
+	uint8_t pin;
 	//DataPort register
 	volatile uint8_t * dataport;   
  
 };
-
+#endif /* WM2999_H_ */

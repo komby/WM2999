@@ -18,14 +18,14 @@
 //This driver is a bit banging approach to driving the pixels on a Atmega 328p but should work with any avr 16mhz chip. 
 //
 
-
-#ifndef  WM2999_H
-#define  WM2999_H
-
 #include <Arduino.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#ifndef  WM2999_H
+#define  WM2999_H
+
+
 
 
 //struct to store the pixel color information
@@ -37,64 +37,6 @@ typedef struct __attribute__ ((__packed__))
 } rgb_color;
 
 
-
-// These definitions were used from the polou driver code.
-// they are not currently in use they are intended to help
-// get rid of the hard coding that is used in the Paint call
-// so that we can drive multiple strings,  or strings with a different
-// pin other than pin 8
-#if defined(__AVR_ATmega32U4__)
-// ATmega32U4-based boards such as the Arduino Leonardo
-
-const unsigned char pinBit[] =
-{
-	2, 3, 1, 0, 4, 6, 7, 6,  // Pins 0-7
-	4, 5, 6, 7, 6, 7,        // Pins 8-13
-	3, 1, 2, 0,              // Pins 14-17
-	7, 6, 5, 4, 1, 0,        // Pins 18-23
-	4, 7, 4, 5, 6, 6,        // Pins 24-29
-};
-
-const unsigned char pinAddr[] =
-{
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTC),
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTE),
-
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTC),
-
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-
-	_SFR_IO_ADDR(PORTF),
-	_SFR_IO_ADDR(PORTF),
-	_SFR_IO_ADDR(PORTF),
-	_SFR_IO_ADDR(PORTF),
-	_SFR_IO_ADDR(PORTF),
-	_SFR_IO_ADDR(PORTF),
-
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTD),    
-};
-
-#elif defined(__AVR__) && !defined(NUM_DIGITAL_PINS) || NUM_DIGITAL_PINS == 20
-// ATmega168/328-based boards such as the Arduino Uno or Baby Orangutan B-328
 
 const unsigned char pinBit[] =
 {
@@ -128,97 +70,6 @@ const unsigned char pinAddr[] =
 	_SFR_IO_ADDR(PORTC),
 };
 
-#elif defined(__AVR__) && NUM_DIGITAL_PINS == 70
-// ATmega2560-based boards such as the Arduino Mega 2560
-
-const unsigned char pinBit[] =
-{
-	0, 1, 4, 5, 5, 3, 3, 4, 5, 6, 
-	4, 5, 6, 7, 1, 0, 1, 0, 3, 2, 
-	1, 0, 0, 1, 2, 3, 4, 5, 6, 7, 
-	7, 6, 5, 4, 3, 2, 1, 0, 7, 2, 
-	1, 0, 7, 6, 5, 4, 3, 2, 1, 0, 
-	3, 2, 1, 0, 0, 1, 2, 3, 4, 5, 
-	6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 
-};
-
-const unsigned char pinAddr[] =
-{
-	_SFR_IO_ADDR(PORTE),
-	_SFR_IO_ADDR(PORTE),
-	_SFR_IO_ADDR(PORTE),
-	_SFR_IO_ADDR(PORTE),
-	_SFR_IO_ADDR(PORTG),
-	_SFR_IO_ADDR(PORTE),
-	_SFR_IO_ADDR(PORTH),
-	_SFR_IO_ADDR(PORTH),
-	_SFR_IO_ADDR(PORTH),
-	_SFR_IO_ADDR(PORTH),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTJ),
-	_SFR_IO_ADDR(PORTJ),
-	_SFR_IO_ADDR(PORTH),
-	_SFR_IO_ADDR(PORTH),
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTA),
-	_SFR_IO_ADDR(PORTA),
-	_SFR_IO_ADDR(PORTA),
-	_SFR_IO_ADDR(PORTA),
-	_SFR_IO_ADDR(PORTA),
-	_SFR_IO_ADDR(PORTA),
-	_SFR_IO_ADDR(PORTA),
-	_SFR_IO_ADDR(PORTA),
-	_SFR_IO_ADDR(PORTC),
-	_SFR_IO_ADDR(PORTC),
-	_SFR_IO_ADDR(PORTC),
-	_SFR_IO_ADDR(PORTC),
-	_SFR_IO_ADDR(PORTC),
-	_SFR_IO_ADDR(PORTC),
-	_SFR_IO_ADDR(PORTC),
-	_SFR_IO_ADDR(PORTC),
-	_SFR_IO_ADDR(PORTD),
-	_SFR_IO_ADDR(PORTG),
-	_SFR_IO_ADDR(PORTG),
-	_SFR_IO_ADDR(PORTG),
-	_SFR_IO_ADDR(PORTL),
-	_SFR_IO_ADDR(PORTL),
-	_SFR_IO_ADDR(PORTL),
-	_SFR_IO_ADDR(PORTL),
-	_SFR_IO_ADDR(PORTL),
-	_SFR_IO_ADDR(PORTL),
-	_SFR_IO_ADDR(PORTL),
-	_SFR_IO_ADDR(PORTL),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTB),
-	_SFR_IO_ADDR(PORTF),
-	_SFR_IO_ADDR(PORTF),
-	_SFR_IO_ADDR(PORTF),
-	_SFR_IO_ADDR(PORTF),
-	_SFR_IO_ADDR(PORTF),
-	_SFR_IO_ADDR(PORTF),
-	_SFR_IO_ADDR(PORTF),
-	_SFR_IO_ADDR(PORTF),
-	_SFR_IO_ADDR(PORTK),
-	_SFR_IO_ADDR(PORTK),
-	_SFR_IO_ADDR(PORTK),
-	_SFR_IO_ADDR(PORTK),
-	_SFR_IO_ADDR(PORTK),
-	_SFR_IO_ADDR(PORTK),
-	_SFR_IO_ADDR(PORTK),
-	_SFR_IO_ADDR(PORTK),
-};
-
-#endif
-
-
 
 
 
@@ -227,14 +78,14 @@ const unsigned char pinAddr[] =
 //Template class to handle one string of pixels on a particular pin.
 //the pin is meant to specify what you know as a pin on an arduino,  not a pin on the atmega chip
 //IE Pin 8 would be pin0, portb - your code would use 8 , not 0.
-class WM2999 
+class WM2999
 {
 public:	
 
 		WM2999(uint8_t ppin): pin(ppin){
 		}
-		
-		
+
+
 	//cleanup from the alloc calls - thanks to adafruit driver for idea
 	~WM2999(void)
 	{
@@ -277,8 +128,8 @@ public:
 	//Convienence method, updates based on member variables.
 	void paint(void)
 	{
- 
-		paint(pixels, numberOfPixels);	
+
+		paint(pixels, numberOfPixels);
 	}
 	// Function definition for the paint operation.  This is a templated class so the pin is dynamic to the instance.
 	// note that since this is using registers directly  r18,r19,r20 will definately get clobbered,  I am unsure how
@@ -290,12 +141,12 @@ public:
 	// And a LOT of help from Andy L. @ DIYC for getting these pixels timing figured out and explaining it to us mortals 
 	// Also thanks to Zeph for posing the question and others for finding them for 5$ a set :)  Glad i got 20 of them now !
 	//
-	void paint(uint8_t *  colors, unsigned int count)
+	/* void paint(uint8_t *  colors, unsigned int count)
 	{
 		//TODO:  Refactor to use the specified pin bit
 		//THIS IS CURRENTLY HARD CODED TO PIN0 on PORTB or ( digital pin 8)
-		paint( colors, numberOfPixels,0, PORTB);
-	}
+		paint( colors, numberOfPixels,pinBit[pin],pinAddr[pin]);
+	} */
 
 
 
@@ -304,7 +155,8 @@ public:
 	//count - the number of pixels in the string.
 	//ppin - the pin to output on
 	//port - the port the pin is located on
-	void paint(uint8_t * colors, unsigned int count, uint8_t ppin, uint8_t port){
+
+	void  __attribute__((always_inline)) paint(uint8_t * colors, unsigned int count){
 				//Reset the line so that the first output of "Lo" will be interpreted.
 				//TODO - refactor based on timer idea as specified at the end of the loop.
 				//       Hopefully that will speed up the pixel timing.
@@ -355,9 +207,8 @@ public:
 					"    out __SREG__, r26    ;\n"	 // reenable interrupts, this should probally be happening outside the loop for efficiency, and safety, but its working....
 					: \
 					: [colors] "z" (colors),
-					[count] "w" (count),
-					[port] "I" (_SFR_IO_ADDR(PORTB)), 
-					[pin] "I" (0) 
+					[port] "I" _SFR_IO_ADDR(PORTC),
+					[pin] "I" (0)
 									:"r18", "r26","cc", "memory"  );
 				
 					//we finished one pixel,  the line is still high,  add the 600 microsecond pause,  
@@ -380,6 +231,7 @@ public:
 				digitalWrite(pin, HIGH);
 				
 	}
+
 
 	// Set pixel color from separate 8-bit R, G, B components:
 	// n is the pixel index (0-19) - its a bit backwards so,  pixel 0 is the 
@@ -414,7 +266,7 @@ public:
             //            *p++ = c >>  8;   // Green
              //   		*p = c >> 16;     // Red
 		        
-		//}                   
+		//}
 	//}
 
 
@@ -478,7 +330,7 @@ public:
 				this->paint();
 				delay(wait);
 			}
-			
+
 		}
 
 		/* Helper functions */
@@ -503,10 +355,10 @@ public:
 			return c;
 		}
 
- 
 
 
-protected:	
+
+protected:
 	uint16_t numberOfPixels;   //number of pixels
 	uint8_t * pixels;		   //Pointer to the base address of the pixel colors in memory
 							   //if alloc has been called this will be initialized to be pointing

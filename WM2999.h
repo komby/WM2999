@@ -83,6 +83,7 @@ class WM2999
 public:	
 
 		WM2999(uint8_t ppin): pin(ppin){
+			this->externalDataPointerSet=false;
 		}
 
 
@@ -128,7 +129,7 @@ public:
 	//Convienence method, updates based on member variables.
 	void paint(void)
 	{
-
+printf("wm2999::paint %d - %d %d\n", numberOfPixels,pixels[0], pixels[1]);
 		paint(pixels, numberOfPixels);
 	}
 	// Function definition for the paint operation.  This is a templated class so the pin is dynamic to the instance.
@@ -157,6 +158,8 @@ public:
 	//port - the port the pin is located on
 
 	void  __attribute__((always_inline)) paint(uint8_t * colors, unsigned int count){
+				
+		
 				//Reset the line so that the first output of "Lo" will be interpreted.
 				//TODO - refactor based on timer idea as specified at the end of the loop.
 				//       Hopefully that will speed up the pixel timing.
@@ -294,7 +297,10 @@ public:
 
 	//Mutator to set the number of pixels in the string
 	void setPixelCount(  uint32_t pCount) {
-		alloc(pCount);
+		if(!this->externalDataPointerSet)
+			alloc(pCount);
+			else
+	    this->numberOfPixels=pCount;
 
 	}
 
@@ -366,6 +372,8 @@ protected:
 	uint8_t pin;
 	//DataPort register
 	volatile uint8_t * dataport;   
+	
+	bool externalDataPointerSet;
  
 };
 #endif /* WM2999_H_ */

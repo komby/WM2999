@@ -158,7 +158,8 @@ printf("wm2999::paint %d - %d %d\n", numberOfPixels,pixels[0], pixels[1]);
 	//port - the port the pin is located on
 
 	void  __attribute__((always_inline)) paint(uint8_t * colors, unsigned int count){
-				
+				//move to the red byte
+				colors = colors + 2;
 		
 				//Reset the line so that the first output of "Lo" will be interpreted.
 				//TODO - refactor based on timer idea as specified at the end of the loop.
@@ -173,12 +174,15 @@ printf("wm2999::paint %d - %d %d\n", numberOfPixels,pixels[0], pixels[1]);
 					asm volatile (
 					"    in r26, __SREG__      ; timing-critical, so no interrupts\n" 
                     "    cli                   ; global interrupts disable\n" 
+					"    ld __tmp_reg__, Z\n" // get 8 bits from memory and increment the pointer\n"   					  					
 					"    rcall write_byte%=\n" // call write_byte for blue bits
+					"    ld __tmp_reg__, -Z\n" // get 8 bits from memory and increment the pointer\n"   
 					"    rcall write_byte%=\n" // call write_byte for the green bits
+					"    ld __tmp_reg__, -Z\n" // get 8 bits from memory and increment the pointer\n"   
 					"    rcall write_byte%=\n" // call write_byte for the red bits 
 					"    rjmp string_end%=\n"  // go to the end of the routine
 					"write_byte%=:\n"
-					"    ld __tmp_reg__, Z+\n" // get 8 bits from memory and increment the pointer\n"   
+					
 					"    rcall write_bit%=\n"  // The next 8 calls handle outputting 8 bits of color information
 					"    rcall write_bit%=\n"
 					"    rcall write_bit%=\n"
@@ -229,8 +233,8 @@ printf("wm2999::paint %d - %d %d\n", numberOfPixels,pixels[0], pixels[1]);
 						          // fetch from input data.  The timer could be checked at the beginning of the 
 						          // paint call to finish the 2ms delay.  If a timer worked,  it should allow the updates to run faster.
 				
-				//Setting back to high.  This may not be needed still need to test this. 
-				// not needed as there will be a high at the beginning of the 
+				////Setting back to high.  This may not be needed still need to test this. 
+				//// not needed as there will be a high at the beginning of the 
 				digitalWrite(pin, HIGH);
 				
 	}
